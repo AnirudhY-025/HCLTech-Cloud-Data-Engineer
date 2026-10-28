@@ -1,101 +1,139 @@
-# HCLTech-Cloud-Data-Engineer
-Hands-On Practical and Clear Explanations of Beginner Level Tasks of an Cloud Data Engineer
+# HCLTech Cloud Data Engineer Lab Assessment
 
-# Repository Overview
+Repository containing practical tasks, scripts, and documentation for the Cloud Data Engineer assessment.
 
-This repository contains the complete implementation, automation scripts, analytical queries, architectural designs, and verification artifacts for the HCL CloudLab Assessment. The project covers end-to-end data engineering and cloud infrastructure workflows across six core modules:
+**Candidate:** Yekkaluri Anirudh  
+**Roll Number:** 23BTRCL241  
+**Track:** Cloud Engineering & Big Data Analytics  
 
-Section A: Advanced SQL & Optimization — Enterprise relational database design, complex analytical queries, window functions (LAG, DENSE_RANK), and SARGable index optimization.
-Section B: Linux Administration & Shell Scripting — High-volume log analytics (grep, awk), secure POSIX permissions (chmod 640), system troubleshooting, and an automated backup bash script (backup_check.sh).
-Section C: PySpark Data Engineering — Distributed DataFrame processing, data deduplication, missing value imputation, relational joins, broadcast join optimizations, and PySpark internals.
-Live Interactive Notebook: Google Colab PySpark Implementation
-Section D: AWS Cloud Services — Secure S3 bucket architecture with Block Public Access, least-privilege IAM policies, EC2 health checks, CloudWatch alarms with SNS alerting, and serverless event-driven architectures.
-Section E: AWS Step Functions — Serverless state machine orchestration in Amazon States Language (ASL), dynamic Choice branching, exponential backoff Retry policies, and Catch fault tolerance.
-Section F: Microsoft Azure Enterprise Cloud — Big data storage (ADLS Gen2 vs Blob), Azure Data Factory (ADF) ETL pipelines, Databricks with Delta Lake ACID guarantees, Azure Synapse Analytics, Microsoft Entra ID (RBAC), and Azure Key Vault.
-📂 Repository Structure
-text
-├── sql/
-│   ├── 01_enterprise_db_setup.sql      # Schema definition (Employees & Departments) + 15+ records
-│   ├── 02_advanced_queries.sql         # Joins, subqueries, 2nd highest salary, DENSE_RANK()
-│   ├── 03_sales_analytics.sql          # Sales revenue aggregation & LAG() window function
-│   └── 04_query_optimization.sql      # SARGable query rewrite & EXPLAIN execution plans
-├── linux/
-│   ├── log_analysis_commands.sh        # grep/awk log processing pipelines
-│   ├── permissions_and_checks.sh       # chown/chmod 640, top, free, df, find >100M
-│   └── backup_check.sh                 # Production-grade automated directory backup script
-├── pyspark/
-│   ├── pyspark_data_engineering.ipynb  # Jupyter/Colab notebook (all Q7, Q8, Q9 tasks)
-│   └── colab_link.txt                  # Link to live interactive Colab environment
-├── aws/
-│   ├── iam_least_privilege_policy.json # Restrictive S3 read IAM policy definition
-│   ├── event_driven_architecture.md    # S3 -> Lambda -> SQS architectural design
-│   └── ec2_cloudwatch_alarm_config.md  # Metric alarm setup (CPUUtilization > 85%)
-├── step_functions/
-│   ├── sales_processing_workflow.asl.json # Amazon States Language state machine definition
-│   └── state_machine_architecture.md   # Choice branching & Retry/Catch documentation
-├── azure/
-│   └── azure_cloud_architecture.md     # ADLS Gen2, ADF, Databricks, Synapse, Entra ID, Key Vault
-└── README.md                           # Master repository documentation
+---
 
-🛠️ Module Breakdown & Implementation Details
-Section A: Advanced SQL (EnterpriseDB & Sales Analytics)
-Schema Design & Referential Integrity: Created EnterpriseDB with Employees and Departments tables enforcing primary key and foreign key constraints, populating 15+ employee records across multiple management hierarchies and an unassigned department.
-Complex Joins & Subqueries:
-Self-joins (LEFT JOIN Employees m ON e.ManagerID = m.EmployeeID) to display hierarchical employee-manager relationships.
-Correlated subqueries comparing individual salaries against dynamic departmental averages (WHERE e.Salary > (SELECT AVG(Salary)...)).
-Portably retrieved the 2nd highest distinct salary without vendor-specific clauses (LIMIT or TOP) using nested scalar subqueries.
-Window Functions: Applied DENSE_RANK() OVER (PARTITION BY DepartmentID ORDER BY Salary DESC) to identify top 3 earners per department while retaining ties at the cutoff.
-Query Optimization (SARGability): Rewrote non-SARGable query WHERE YEAR(JoiningDate) = 2025 into a direct date range scan (WHERE JoiningDate >= '2025-01-01' AND JoiningDate < '2026-01-01'), enabling the query optimizer to utilize B-tree indexes rather than performing expensive full table scans (type: ALL).
-Execution Plan Diagnostics: Analyzed EXPLAIN outputs to identify full table scans, row scan estimates, and file sorts, designing a composite index on (DepartmentID, Salary) with leading equality columns.
-Section B: Linux System Administration & Shell Scripting
-High-Volume Log Analysis:
-Filtered ERROR events from /var/log/application.log.
-Piped to tail -20 for real-time monitoring of recent failures.
-Rapid count evaluation using grep -c.
-Extracted specific dates to dedicated archival files using shell redirection.
-Hourly aggregation using awk '{print substr($2, 1, 2)}' | sort | uniq -c.
-Security & System Troubleshooting:
-Created finance system group and assigned strict chmod 640 permissions (rw-r-----) to ensure owner read/write, group read-only, and zero permissions for other users.
-System monitoring commands: top/ps aux for CPU hogs, free -h for memory, df -h for disk utilization, and find /opt/app -type f -size +100M for high-volume files.
-Automated Backup Script (backup_check.sh):
-Robust argument validation ($# -lt 2).
-Source existence verification ([ ! -d "$SRC" ]).
-Automatic destination creation (mkdir -p "$DST").
-Timestamped compression using tar -czf "$DST/backup_$(date +%Y%m%d_%H%M%S).tar.gz" -C "$SRC" ..
-Clean exit codes (0 for success, 1 for error handling).
-Section C: PySpark Data Engineering
+## Overview
 
-🚀 Live Interactive Colab Notebook: Click here to view code & cell outputs
+This repository documents the implementation of database design, systems administration, big data pipelines, and cloud workflows across six sections:
 
-DataFrame Operations (Q7): Created distributed employee DataFrame with explicit types, demonstrated schema introspection (printSchema()), conditional filtering (Salary > 60000), derived column projections (withColumn('AnnualSalary', col('Salary') * 12)), departmental aggregations (groupBy().agg(avg, count)), and sorted limit actions (orderBy().show(5)).
-Data Cleaning & Deduplication (Q8):
-Ingested messy transaction records using explicit StructType schema.
-Deduplicated records based on primary business key (dropDuplicates(['TransactionID'])).
-Missing value strategy: dropped unrecoverable primary key nulls (dropna(subset=['TransactionID', 'CustomerID'])) and imputed measurement nulls with default zeros (fillna({'Quantity': 0, 'UnitPrice': 0.0})).
-Formatted dates with to_date() and removed invalid date rows.
-Product revenue aggregation sorted descending.
-Relational Joins & Execution Concepts (Q9):
-Inner join combining Orders and Customers.
-Left anti join (orders_df.join(..., how='left_anti')) to isolate customers with zero orders.
-Geographic revenue aggregation grouped by city.
-Comprehensive analysis of Broadcast Joins (eliminating cluster network shuffle by copying small tables < 10 MB to all executors) and Transformations vs. Actions (lazy DAG compilation vs. triggered execution).
-Section D: AWS Cloud Services & Event-Driven Architecture
-S3 Security & IAM Least Privilege: Created private S3 bucket with all four Block Public Access settings enabled. Authored strict IAM policy granting s3:GetObject and s3:ListBucket restricted exclusively to arn:aws:s3:::hr-employee-reports/*.
-Verification & Encryption: Validated security via AWS CLI simulated access (403 AccessDenied) and IAM Policy Simulator. Documented envelope encryption at rest using AWS KMS / SSE-S3.
-EC2 Troubleshooting & CloudWatch: Monitored instance health checks (2/2 status checks passed), analyzed network reachability differences between stateful Security Groups and subnet Route Tables, configured CloudWatch Alarm for CPUUtilization > 85% with SNS email dispatch, and detailed process isolation via SSH top.
-Event-Driven Architecture: Designed automated ingestion pipeline: S3 Upload (s3:ObjectCreated:*) → AWS Lambda execution → processed output to destination S3 bucket. Handled idempotency via DynamoDB tracking and failure auditing via SQS Dead-Letter Queues (DLQ).
-Section E: AWS Step Functions State Machine
-End-to-End Orchestration: Designed serverless workflow coordinating:
-ValidateFile (Lambda task)
-CheckValidity (Choice state branching)
-TransformData (ETL transform)
-CalculateSales (Product-level aggregations)
-StoreResults (Direct S3 SDK putObject)
-SendNotification (Amazon SNS notification)
-Fault Tolerance & Resilience: Implemented exponential backoff Retry policies for transient timeouts (IntervalSeconds: 3, MaxAttempts: 3, BackoffRate: 2) and fallback Catch handlers routing unrecoverable errors to FileInvalid terminal state.
-Execution Monitoring: Verified state transitions and JSON payload flows using AWS Step Functions Execution History console for both successful runs and caught failure paths.
-Section F: Microsoft Azure Enterprise Cloud
-Storage Architecture: Architectural comparison between Azure Blob Storage (flat namespace for unstructured objects) and Azure Data Lake Storage Gen2 (hierarchical directory namespace, POSIX ACLs, optimized for Synapse/Databricks).
-ETL Pipeline Orchestration: Azure Data Factory (ADF) pipelines, Activities, Linked Services, triggers, and the distinction between cloud Azure Integration Runtime (IR) and on-premises Self-hosted IR.
-Databricks & Delta Lake: Workspace deployment, compute cluster auto-termination cost controls, and Delta Lake ACID transaction guarantees, schema enforcement, time-travel versioning, and UPSERT operations.
-Security & Monitoring: Centralized cloud identity and RBAC via Microsoft Entra ID (Azure AD), telemetry collection through Azure Monitor and Application Insights, and secure secrets management using Azure Key Vault with Managed Identities.
+- **Section A: Advanced SQL** - Schema creation, multi-table joins, correlated subqueries, ranking window functions, and query optimization.
+- **Section B: Linux** - System log analysis using grep/awk, POSIX permissions, server monitoring, and an automated backup bash script.
+- **Section C: PySpark Data Engineering** - DataFrame operations, data cleaning, deduplication, handling missing values, and join performance.
+- **Section D: AWS Cloud Services** - S3 bucket security, least-privilege IAM policies, EC2 health checks, CloudWatch alarms, and event-driven architecture.
+- **Section E: AWS Step Functions** - Serverless state machine coordination, ASL definition, error retry/catch handling, and execution tracing.
+- **Section F: Microsoft Azure** - Enterprise cloud theory covering ADLS Gen2, Azure Data Factory, Databricks with Delta Lake, Synapse Analytics, Entra ID, and Key Vault.
+
+---
+
+## Section C: PySpark Notebook
+
+All PySpark code, data cleaning pipelines, and join operations for Questions 7, 8, and 9 were written and executed in Google Colab:
+
+- **Colab Notebook:** [https://colab.research.google.com/drive/1b9TJR8Fbx1R5jrjVk9eCwy06X17CEBoF](https://colab.research.google.com/drive/1b9TJR8Fbx1R5jrjVk9eCwy06X17CEBoF)
+
+---
+
+## Detailed Task Breakdown
+
+### Section A: Advanced SQL
+- **Question 1 (EnterpriseDB Design):**
+  - Created EnterpriseDB with Employees and Departments tables with primary and foreign keys.
+  - Inserted 15+ employee records and 5 departments (including an unassigned department).
+  - Joins: Displayed employee, department, and manager names using inner and self joins.
+  - Subqueries: Filtered employees earning more than their department average salary.
+  - Ranking: Used `DENSE_RANK() OVER (PARTITION BY DepartmentID ORDER BY Salary DESC)` to get top 3 employees per department, retaining ties.
+  - Found second-highest distinct salary using nested scalar subquery without `LIMIT` or `TOP`.
+- **Question 2 (Sales Analytics & Indexing):**
+  - Created Sales table and calculated total revenue per product.
+  - Calculated monthly revenue and month-over-month revenue change using `LAG()` window function.
+  - Rewrote `WHERE YEAR(JoiningDate) = 2025` to a date range `JoiningDate >= '2025-01-01' AND JoiningDate < '2026-01-01'` to enable B-tree index range scanning.
+- **Question 3 (SQL Troubleshooting):**
+  - Analyzed execution plans with `EXPLAIN` to identify full table scans (`type: ALL`) and filesorts.
+  - Designed composite index on `(DepartmentID, Salary)` placing equality column first.
+  - Identified duplicate customer emails using `GROUP BY Email HAVING COUNT(*) > 1`.
+
+### Section B: Linux
+- **Question 4 (Log Analysis):**
+  - Filtered all ERROR entries from `/var/log/application.log` using `grep`.
+  - Displayed the 20 most recent errors using `grep 'ERROR' file | tail -20`.
+  - Counted total error entries with `grep -c 'ERROR' file`.
+  - Extracted errors for a specific date into a new file using output redirection.
+  - Calculated hourly error counts using `awk '{print substr($2, 1, 2)}' | sort | uniq -c`.
+- **Question 5 (Permissions & Diagnostics):**
+  - Created group `finance` and report file using `groupadd` and `touch`.
+  - Set permissions to `640` (`rw-r-----`) with `chown root:finance` and `chmod 640`.
+  - Monitored top CPU processes using `top` and `ps aux --sort=-%cpu`.
+  - Checked memory and disk space using `free -h` and `df -h`.
+  - Located files larger than 100 MB using `find /opt/app -type f -size +100M`.
+- **Question 6 (Bash Scripting):**
+  - Authored `backup_check.sh` accepting source and destination arguments.
+  - Validated parameter count, verified source existence, created destination via `mkdir -p`.
+  - Created timestamped archive using `tar -czf`.
+  - Handled success and failure exit codes.
+
+### Section C: PySpark Data Engineering
+- **Question 7 (DataFrame Operations):**
+  - Created 15-record employee DataFrame and displayed schema and first 5 rows.
+  - Filtered employees with salary > 60,000.
+  - Added derived `AnnualSalary` column (`col('Salary') * 12`).
+  - Grouped by department to calculate average salary and headcount.
+  - Displayed top 5 highest earners using `orderBy(col('Salary').desc()).show(5)`.
+- **Question 8 (Data Cleaning & Aggregation):**
+  - Ingested `transactions.csv` using explicit `StructType` schema.
+  - Removed duplicate records by `TransactionID` using `dropDuplicates()`.
+  - Handled missing values: dropped rows missing critical IDs (`TransactionID`, `CustomerID`), filled numeric nulls with `0`.
+  - Cast `TransactionDate` to `DateType` via `to_date()` and removed invalid dates.
+  - Calculated revenue (`Quantity * UnitPrice`) and aggregated revenue by product in descending order.
+- **Question 9 (Joins & Spark Internals):**
+  - Joined Customers and Orders DataFrames on `CustomerID`.
+  - Found customers with no orders using a `left_anti` join.
+  - Aggregated total order amount by city.
+  - Evaluated broadcast join use cases (tables < 10 MB broadcast to worker memory, avoiding shuffle).
+  - Clarified lazy transformations (`filter`, `select`) versus trigger actions (`count`, `show`).
+
+### Section D: AWS Cloud Services
+- **Question 10 (S3 & IAM Security):**
+  - Created private S3 bucket with Block Public Access enabled and uploaded sample report.
+  - Wrote least-privilege IAM policy restricting read access exclusively to target bucket ARN.
+  - Documented access restriction testing using CLI (403 Access Denied) and IAM Policy Simulator.
+  - Detailed server-side encryption at rest using AWS KMS / SSE-S3.
+- **Question 11 (EC2 & CloudWatch):**
+  - Verified instance state and 2/2 status checks in EC2 console.
+  - Analyzed impact of Security Groups (instance firewall) and Route Tables (subnet routing).
+  - Configured CloudWatch Alarm on `CPUUtilization > 85%` with SNS email alert.
+  - Investigated CPU spikes using SSH and `top` / `ps aux`.
+- **Question 12 (Event-Driven Architecture):**
+  - Selected AWS Lambda for serverless, event-driven processing.
+  - Configured S3 `s3:ObjectCreated:*` event notification to trigger Lambda function.
+  - Outlined IAM execution role permissions for S3 read/write and CloudWatch logging.
+  - Designed error capture using CloudWatch Logs and SQS Dead-Letter Queues.
+  - Documented prevention of recursive triggering by separating input/output buckets.
+
+### Section E: AWS Step Functions
+- **Question 13 (State Machine Design):**
+  - Orchestrated 5-stage ETL pipeline: ValidateFile, Choice check, TransformData, CalculateSales, StoreResults, SendNotification.
+  - Used Choice state for conditional branching on validation result.
+  - Implemented Retry with exponential backoff for transient errors and Catch for permanent errors.
+  - Configured service integrations using task Resource ARNs.
+  - Used execution history console to debug failed states with input/output payloads.
+- **Question 14 (Implementation & Execution):**
+  - Submitted full ASL state machine definition.
+  - Verified successful execution run (all green states).
+  - Verified error handling path on invalid file input.
+
+### Section F: Microsoft Azure
+- **Question 15 (Storage & ADF):**
+  - Azure Blob Storage (flat namespace) vs ADLS Gen2 (hierarchical namespace, POSIX ACLs).
+  - Azure Data Factory pipeline architecture (Activities, Linked Services, triggers).
+  - Azure Integration Runtime (cloud compute) vs Self-hosted IR (on-prem connectivity).
+- **Question 16 (Databricks & Synapse):**
+  - Databricks workspace and cluster configuration with auto-termination.
+  - Delta Lake ACID guarantees, schema enforcement, time travel, and upsert operations.
+  - Azure Synapse (SQL data warehousing & BI) vs Databricks (Spark ML & feature engineering).
+- **Question 17 (Security & Monitoring):**
+  - Microsoft Entra ID (Azure AD) authentication, MFA, and RBAC authorization.
+  - Azure Monitor platform metrics and Application Insights APM diagnostics.
+  - Azure Key Vault centralized secret storage with Managed Identity authentication.
+
+---
+
+## Submission Artifacts
+
+- **Report Document:** `HCL_CloudLab_Assessment_Report.docx` (all 49 execution screenshots and mapped tasks)
+- **PySpark Colab Notebook:** [Google Colab Link](https://colab.research.google.com/drive/1b9TJR8Fbx1R5jrjVk9eCwy06X17CEBoF)
